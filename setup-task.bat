@@ -1,5 +1,6 @@
+@chcp 65001 >nul
 @echo off
-echo === Daily News Agent — 创建定时任务 ===
+echo === Daily News Agent - 创建定时任务 ===
 echo.
 echo 任务将在每天早上 8:00 运行
 echo.
