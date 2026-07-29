@@ -1,12 +1,11 @@
-@chcp 65001 >nul
 @echo off
-echo === Daily News Agent - 创建定时任务 ===
+echo Daily News Agent - Create Scheduled Task
 echo.
-echo 任务将在每天早上 8:00 运行
+echo Task will run every day at 08:00
 echo.
 schtasks /Create /TN "DailyNewsAgent" /TR "cmd /c E:\n8n-nodes-daily-news-agent\run-task.bat" /SC DAILY /ST 08:00 /F
 echo.
-echo === 完成 ===
-echo 查看任务: schtasks /Query /TN "DailyNewsAgent"
-echo 删除任务: schtasks /Delete /TN "DailyNewsAgent" /F
+echo Done!
+echo View task:  schtasks /Query /TN "DailyNewsAgent"
+echo Delete task: schtasks /Delete /TN "DailyNewsAgent" /F
 pause
