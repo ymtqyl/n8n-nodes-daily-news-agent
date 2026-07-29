@@ -1,0 +1,82 @@
+{
+  "config": {
+    "wide_screen_mode": true
+  },
+  "header": {
+    "template": "blue",
+    "title": {
+      "tag": "plain_text",
+      "content": "📰 每日新闻速递"
+    }
+  },
+  "elements": [
+    {
+      "tag": "markdown",
+      "content": "**2026年7月28日 星期三**"
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "markdown",
+      "content": "**🔥 热点新闻**"
+    },
+    {
+      "tag": "div",
+      "fields": [
+        {
+          "text": {
+            "tag": "lark_md",
+            "content": "**[1. 新闻标题示例](https://example.com)**"
+          },
+          "is_short": false
+        },
+        {
+          "text": {
+            "tag": "lark_md",
+            "content": "📌 Google News"
+          },
+          "is_short": true
+        }
+      ]
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "markdown",
+      "content": "**💻 科技新闻**"
+    },
+    {
+      "tag": "div",
+      "fields": [
+        {
+          "text": {
+            "tag": "lark_md",
+            "content": "**[1. 科技新闻标题示例](https://news.ycombinator.com)**"
+          },
+          "is_short": false
+        },
+        {
+          "text": {
+            "tag": "lark_md",
+            "content": "📌 Hacker News | ⬆ 256"
+          },
+          "is_short": true
+        }
+      ]
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "note",
+      "elements": [
+        {
+          "tag": "plain_text",
+          "content": "🤖 由 Daily News Agent 自动生成"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Newspaper body -->
+  <rect x="2" y="3" width="20" height="18" rx="2" />
+  <!-- Lines of text representing news -->
+  <line x1="6" y1="8" x2="18" y2="8" />
+  <line x1="6" y1="12" x2="18" y2="12" />
+  <line x1="6" y1="16" x2="13" y2="16" />
+  <!-- AI sparkle icon in the corner -->
+  <path d="M17 16l1.5-1.5M18.5 14.5l.5-1.5.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5z" fill="currentColor" opacity="0.7"/>
+</svg>

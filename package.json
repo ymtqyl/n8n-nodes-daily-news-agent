@@ -1,0 +1,42 @@
+{
+  "name": "n8n-nodes-daily-news-agent",
+  "version": "0.1.0",
+  "description": "n8n community node: Daily News Agent — fetches hot news and tech news with optional AI summary",
+  "main": "dist/nodes/DailyNewsAgent/DailyNewsAgent.node.js",
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/DailyNewsAgentApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/DailyNewsAgent/DailyNewsAgent.node.js"
+    ]
+  },
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "news",
+    "ai",
+    "agent"
+  ],
+  "scripts": {
+    "dev": "n8n-node dev",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint nodes credentials --ext .ts",
+    "lint:fix": "eslint nodes credentials --ext .ts --fix"
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "latest",
+    "@types/node": "^20.0.0",
+    "n8n-workflow": "^1.70.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "rss-parser": "^3.13.0"
+  },
+  "license": "MIT"
+}

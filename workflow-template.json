@@ -1,0 +1,181 @@
+{
+  "name": "📰 每日新闻 → 飞书（表格 + 推送）",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "每天早上 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "hotNewsSource": "36kr",
+        "hotNewsCount": 5,
+        "techNewsSource": "hackerNews",
+        "techNewsCount": 5,
+        "enableAiSummary": false,
+        "language": "zh-CN"
+      },
+      "id": "daily-news-agent",
+      "name": "Daily News Agent",
+      "type": "CUSTOM.dailyNewsAgent",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 将 Daily News Agent 的输出拆分为飞书多维表格所需的格式\n// 每条新闻一行记录，含标题、链接、来源、分类、概要\n\nconst items = [];\nconst input = $input.first().json;\nconst today = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });\n\n// ---- 生成新闻概要（200-400字）----\nlet summary = '📰 每日新闻概要 | ' + today + '\n\n';\n\nsummary += '🔥 热点新闻 (' + (input.hotNews || []).length + '条):\n';\n(input.hotNews || []).forEach((n, i) => {\n  summary += (i + 1) + '. ' + (n.title || '').substring(0, 80) + '\n';\n});\n\nsummary += '\n💻 科技新闻 (' + (input.techNews || []).length + '条):\n';\n(input.techNews || []).forEach((n, i) => {\n  summary += (i + 1) + '. ' + (n.title || '').substring(0, 80);\n  if (n.score) summary += ' (⬆' + n.score + ')';\n  summary += '\n';\n});\n\nsummary += '\n📌 来源: 36氪 + Hacker News | 🤖 自动生成';\n\n// ---- 写入表格 ----\nfor (const news of input.hotNews || []) {\n  items.push({\n    json: {\n      fields: {\n        \"文本\": news.title || '',\n        \"原文链接\": news.url || '',\n        \"来源\": news.source || '36氪',\n        \"分类\": \"热点新闻\",\n        \"news_date\": input.generatedAt || new Date().toISOString(),\n        \"新闻概要\": summary\n      }\n    }\n  });\n}\n\nfor (const news of input.techNews || []) {\n  items.push({\n    json: {\n      fields: {\n        \"文本\": news.title || '',\n        \"原文链接\": news.url || '',\n        \"来源\": news.source || 'Hacker News',\n        \"分类\": \"科技新闻\",\n        \"news_date\": input.generatedAt || new Date().toISOString(),\n        \"新闻概要\": summary\n      }\n    }\n  });\n}\n\nreturn items;"
+      },
+      "id": "code-transform-bitable",
+      "name": "格式化为表格字段",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        650,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "bitable",
+        "operation": "batchCreateRecords"
+      },
+      "id": "feishu-bitable",
+      "name": "写入飞书多维表格",
+      "type": "n8n-nodes-feishu-lite.feishuNode",
+      "typeVersion": 1,
+      "position": [
+        850,
+        200
+      ],
+      "credentials": {
+        "feishuCredentialsApi": {
+          "id": "{{FEISHU_CREDENTIAL_ID}}",
+          "name": "飞书应用凭证"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 将新闻组装为飞书消息卡片\n\nconst input = $input.first().json;\nconst today = new Date().toLocaleDateString('zh-CN', {\n  year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'\n});\n\nlet hotNewsText = '';\nfor (let i = 0; i < (input.hotNews || []).length; i++) {\n  const n = input.hotNews[i];\n  hotNewsText += '🔥 ' + (i + 1) + '. [' + n.title + '](' + n.url + ') — ' + n.source + '\\n';\n}\n\nlet techNewsText = '';\nfor (let i = 0; i < (input.techNews || []).length; i++) {\n  const n = input.techNews[i];\n  techNewsText += '💻 ' + (i + 1) + '. [' + n.title + '](' + n.url + ') — ' + n.source + '\\n';\n}\n\nconst summaryText = input.aiSummary ? '\\n---\\n**AI 摘要**\\n' + input.aiSummary + '\\n' : '';\n\nconst elements = [];\nconst allNews = (input.hotNews || []).concat(input.techNews || []);\nfor (let i = 0; i < Math.min(allNews.length, 10); i++) {\n  const n = allNews[i];\n  const category = i < (input.hotNews || []).length ? '🔥 热点' : '💻 科技';\n  elements.push({\n    tag: 'div',\n    fields: [\n      {\n        text: {\n          content: '**' + (i + 1) + '.** [' + (n.title || '').substring(0, 100) + '](' + (n.url || '') + ')',\n          tag: 'lark_md'\n        },\n        is_short: false\n      },\n      {\n        text: {\n          content: category + ' | ' + (n.source || '') + (n.score ? ' | ⬆ ' + n.score : ''),\n          tag: 'lark_md'\n        },\n        is_short: true\n      }\n    ]\n  });\n}\n\nreturn [{\n  json: {\n    msg_type: 'interactive',\n    content: JSON.stringify({\n      config: { wide_screen_mode: true },\n      header: {\n        template: 'blue',\n        title: { content: '📰 每日新闻速递 — ' + today, tag: 'plain_text' }\n      },\n      elements: elements,\n      note: {\n        elements: [{\n          tag: 'plain_text',\n          content: '🤖 由 Daily News Agent 自动生成 | ' + new Date().toLocaleString('zh-CN')\n        }]\n      }\n    })\n  }\n}];"
+      },
+      "id": "code-card-format",
+      "name": "组装消息卡片",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        650,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send"
+      },
+      "id": "feishu-bot",
+      "name": "飞书机器人推送",
+      "type": "n8n-nodes-feishu-lite.feishuNode",
+      "typeVersion": 1,
+      "position": [
+        850,
+        450
+      ],
+      "credentials": {
+        "feishuCredentialsApi": {
+          "id": "{{FEISHU_CREDENTIAL_ID}}",
+          "name": "飞书应用凭证"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepBinary": false,
+        "options": {}
+      },
+      "id": "sticky-note",
+      "name": "💡 配置信息\n\n📊 多维表格: 在 .env 中配置 FEISHU_APP_TOKEN\napp_token: 见 .env → FEISHU_APP_TOKEN\ntable_id: 见 .env → FEISHU_TABLE_ID\nreceive_id: 见 .env → FEISHU_USER_OPEN_ID\n字段: 文本(标题) | 原文链接 | 来源 | 分类 | news_date\n\n⚠️ 需要开启飞书权限: im:message:send_as_bot\n   https://open.feishu.cn/app/ 查看你的飞书应用",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        250,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "daily-news-agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "daily-news-agent": {
+      "main": [
+        [
+          {
+            "node": "code-transform-bitable",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "code-card-format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "code-transform-bitable": {
+      "main": [
+        [
+          {
+            "node": "feishu-bitable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "code-card-format": {
+      "main": [
+        [
+          {
+            "node": "feishu-bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "2.0.0",
+  "active": false
+}

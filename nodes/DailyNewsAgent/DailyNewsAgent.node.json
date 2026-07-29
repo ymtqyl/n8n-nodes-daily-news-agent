@@ -1,0 +1,15 @@
+{
+	"$schema": "https://raw.githubusercontent.com/n8n-io/n8n/master/packages/nodes-base/nodes/types/ICodexData.json",
+	"categories": ["AI", "Productivity"],
+	"subcategories": {
+		"AI": ["Agents"],
+		"Productivity": ["News", "Content"]
+	},
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/user/n8n-nodes-daily-news-agent"
+			}
+		]
+	}
+}
