@@ -1,3 +1,6 @@
 #!/bin/sh
-# Daily News Agent — runs every day at 8:00 AM via cron
-exec node /home/node/.n8n/custom/n8n-nodes-daily-news-agent/run-news.js
+# Daily News Agent — 独立运行脚本
+# 配合 cron 使用: 0 8 * * * /path/to/run-news.sh
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec node "$SCRIPT_DIR/run-news.js"
