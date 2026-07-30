@@ -247,4 +247,6 @@ Date 字段必须传 **Unix 时间戳（毫秒）**，不能传 ISO 8601 字符�
 
 ## 许可证
 
-MIT
+MIT License &copy; [ymtqyl](https://github.com/ymtqyl)
+
+详见 [LICENSE](./LICENSE)
