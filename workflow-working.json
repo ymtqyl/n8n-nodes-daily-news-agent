@@ -1,0 +1,284 @@
+{
+  "name": "📰 每日新闻 → 飞书（表格 + 推送）",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "每天早上 8:00",
+      "name": "每天早上 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "手动触发（测试用）",
+      "name": "手动触发（测试用）",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://36kr.com/feed"
+      },
+      "id": "36氪 RSS",
+      "name": "36氪 RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        450,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://hn.algolia.com/api/v1/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tags",
+              "value": "front_page"
+            },
+            {
+              "name": "hitsPerPage",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "Hacker News",
+      "name": "Hacker News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        450,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\n\nlet hotNews = [];\nlet techNews = [];\n\nfor (const item of allItems) {\n  const j = item.json;\n  // RSS items have a \"title\" and \"link\" field\n  if (j.title && j.link) {\n    hotNews.push({\n      title: j.title,\n      url: j.link,\n      source: \"36氪\"\n    });\n  }\n  // HN items have a \"hits\" array\n  if (j.hits) {\n    const hits = j.hits || [];\n    techNews = hits.slice(0, 5).map(hit => ({\n      title: hit.title || \"(no title)\",\n      url: hit.url || (\"https://news.ycombinator.com/item?id=\" + hit.objectID),\n      source: \"Hacker News\",\n      score: hit.points || 0\n    }));\n  }\n}\n\nhotNews = hotNews.slice(0, 5);\n\nreturn [{ json: { hotNews, techNews, aiSummary: null, generatedAt: new Date().toISOString() } }];"
+      },
+      "id": "合并新闻数据",
+      "name": "合并新闻数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = [];\nconst input = $input.first().json;\nconst today = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });\n\nlet summary = '📰 每日新闻概要 | ' + today + '\\n\\n';\n\nsummary += '🔥 热点新闻 (' + (input.hotNews || []).length + '条):\\n';\n(input.hotNews || []).forEach((n, i) => {\n  summary += (i + 1) + '. ' + (n.title || '').substring(0, 80) + '\\n';\n});\n\nsummary += '\\n💻 科技新闻 (' + (input.techNews || []).length + '条):\\n';\n(input.techNews || []).forEach((n, i) => {\n  summary += (i + 1) + '. ' + (n.title || '').substring(0, 80);\n  if (n.score) summary += ' (⬆' + n.score + ')';\n  summary += '\\n';\n});\n\nsummary += '\\n📌 来源: 36氪 + Hacker News | 🤖 自动生成';\n\nfor (const news of input.hotNews || []) {\n  items.push({\n    json: {\n      fields: {\n        \"文本\": news.title || '',\n        \"原文链接\": news.url || '',\n        \"来源\": news.source || '36氪',\n        \"分类\": \"热点新闻\",\n        \"news_date\": new Date(input.generatedAt || Date.now()).getTime(),\n        \"新闻概要\": summary\n      }\n    }\n  });\n}\n\nfor (const news of input.techNews || []) {\n  items.push({\n    json: {\n      fields: {\n        \"文本\": news.title || '',\n        \"原文链接\": news.url || '',\n        \"来源\": news.source || 'Hacker News',\n        \"分类\": \"科技新闻\",\n        \"news_date\": new Date(input.generatedAt || Date.now()).getTime(),\n        \"新闻概要\": summary\n      }\n    }\n  });\n}\n\n// Wrap into batch format\nconst records = items.map(item => ({ fields: item.json.fields }));\nreturn [{ json: { records: JSON.stringify({ records }) } }];"
+      },
+      "id": "格式化为表格字段",
+      "name": "格式化为表格字段",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "bitable",
+        "operation": "bitable:table:record:batchAdd",
+        "app_toke": "La5dbwMLfaiqJfsqvcqcR6oCnsb",
+        "table_id": "tbl0NQ1bFrC0w2nB",
+        "body": "={{ $json.records }}"
+      },
+      "id": "写入飞书多维表格",
+      "name": "写入飞书多维表格",
+      "type": "n8n-nodes-feishu-lite.feishuNode",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        200
+      ],
+      "credentials": {
+        "feishuCredentialsApi": {
+          "id": "{{FEISHU_CREDENTIAL_ID}}",
+          "name": "飞书应用凭证"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst today = new Date().toLocaleDateString('zh-CN', {\n  year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'\n});\n\nlet hotNewsText = '';\nfor (let i = 0; i < (input.hotNews || []).length; i++) {\n  const n = input.hotNews[i];\n  hotNewsText += '🔥 ' + (i + 1) + '. [' + n.title + '](' + n.url + ') — ' + n.source + '\\n';\n}\n\nlet techNewsText = '';\nfor (let i = 0; i < (input.techNews || []).length; i++) {\n  const n = input.techNews[i];\n  techNewsText += '💻 ' + (i + 1) + '. [' + n.title + '](' + n.url + ') — ' + n.source + '\\n';\n}\n\nconst summaryText = input.aiSummary ? '\\n---\\n**AI 摘要**\\n' + input.aiSummary + '\\n' : '';\n\nconst elements = [];\nconst allNews = (input.hotNews || []).concat(input.techNews || []);\nfor (let i = 0; i < Math.min(allNews.length, 10); i++) {\n  const n = allNews[i];\n  const category = i < (input.hotNews || []).length ? '🔥 热点' : '💻 科技';\n  elements.push({\n    tag: 'div',\n    fields: [\n      {\n        text: {\n          content: '**' + (i + 1) + '.** [' + (n.title || '').substring(0, 100) + '](' + (n.url || '') + ')',\n          tag: 'lark_md'\n        },\n        is_short: false\n      },\n      {\n        text: {\n          content: category + ' | ' + (n.source || '') + (n.score ? ' | ⬆ ' + n.score : ''),\n          tag: 'lark_md'\n        },\n        is_short: true\n      }\n    ]\n  });\n}\n\nreturn [{\n  json: {\n    msg_type: 'interactive',\n    content: JSON.stringify({\n      config: { wide_screen_mode: true },\n      header: {\n        template: 'blue',\n        title: { content: '📰 每日新闻速递 — ' + today, tag: 'plain_text' }\n      },\n      elements: elements,\n      note: {\n        elements: [{\n          tag: 'plain_text',\n          content: '🤖 由 Daily News Agent 自动生成 | ' + new Date().toLocaleString('zh-CN')\n        }]\n      }\n    })\n  }\n}];"
+      },
+      "id": "组装消息卡片",
+      "name": "组装消息卡片",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "message:send",
+        "receive_id_type": "open_id",
+        "receive_id": "ou_f4c4d6f9162c2a6daf91c45c2a040c71",
+        "msg_type": "interactive",
+        "content": "={{ $json.content }}"
+      },
+      "id": "飞书机器人推送",
+      "name": "飞书机器人推送",
+      "type": "n8n-nodes-feishu-lite.feishuNode",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        450
+      ],
+      "credentials": {
+        "feishuCredentialsApi": {
+          "id": "{{FEISHU_CREDENTIAL_ID}}",
+          "name": "飞书应用凭证"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepBinary": false,
+        "options": {}
+      },
+      "id": "💡 配置信息",
+      "name": "💡 配置信息",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        250,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "每天早上 8:00": {
+      "main": [
+        [
+          {
+            "node": "36氪 RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hacker News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "手动触发（测试用）": {
+      "main": [
+        [
+          {
+            "node": "36氪 RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hacker News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "36氪 RSS": {
+      "main": [
+        [
+          {
+            "node": "合并新闻数据",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hacker News": {
+      "main": [
+        [
+          {
+            "node": "合并新闻数据",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "合并新闻数据": {
+      "main": [
+        [
+          {
+            "node": "格式化为表格字段",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "组装消息卡片",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化为表格字段": {
+      "main": [
+        [
+          {
+            "node": "写入飞书多维表格",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "组装消息卡片": {
+      "main": [
+        [
+          {
+            "node": "飞书机器人推送",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "2.0.0"
+}
