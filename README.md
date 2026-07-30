@@ -2,7 +2,7 @@
 
 基于 **n8n** 的自动化新闻推送工作流：每天定时从 36氪和 Hacker News 抓取新闻，通过飞书机器人推送消息卡片，同时写入飞书多维表格存档。
 
-> ✅ 已在 **n8n 1.111.1** + **Docker Desktop (Windows 11)** 上验证通过。
+> 已在 **n8n 1.111.1** + **Docker Desktop (Windows 11)** 上验证通过。
 
 ---
 
@@ -114,7 +114,7 @@ docker restart N8nAgent
 
 1. 下载 [`workflow-working.json`](./workflow-working.json)
 2. n8n 页面 → **Import from File** → 选择该文件
-3. 导入后工作流面板出现一个名为 **📰 每日新闻 → 飞书（表格 + 推送）** 的工作流
+3. 导入后工作流面板出现一个名为 **每日新闻 → 飞书（表格 + 推送）** 的工作流
 
 ### 第六步：配置凭证和参数
 
